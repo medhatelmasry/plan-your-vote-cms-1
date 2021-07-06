@@ -181,8 +181,9 @@ namespace Web
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(
             IApplicationBuilder app,
-            ApplicationDbContext context,
-            IWebHostEnvironment env)
+            ApplicationDbContext dbContext,
+            IWebHostEnvironment env,
+            IConfiguration config)
         {
             if (env.IsDevelopment())
             {
@@ -230,16 +231,12 @@ namespace Web
                 endpoints.MapRazorPages();
             });
 
-
-            context.Database.EnsureCreated();
-
-            if (!context.Elections.Any())
-            {
-                SeedData.Initialize(context);
-                AccountsInit.InitializeAsync(app);
-                StateInit.Initialize(context);
-                ThemesInit.Initialize(context);
-            }
+            dbContext.Database.EnsureCreated();
+ 
+            SeedData.Initialize(dbContext, config);
+            AccountsInit.InitializeAsync(app,dbContext);
+            StateInit.Initialize(dbContext, config);
+            ThemesInit.Initialize(dbContext);
         }
     }
 }

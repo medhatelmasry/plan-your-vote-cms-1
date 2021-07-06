@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -6,95 +7,92 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Web.Models;
+using Web.Models.Helper;
+using Web.Models.JSON;
 
 namespace Web.Data
 {
     public static class SeedData
     {
-        public static ApplicationDbContext _context;
+        private static IConfiguration _configuration;
+        private static string importDirectory;
 
-        public const int DummyElectionId = 1; // Hardcoded
-
-        public static void Initialize(ApplicationDbContext context)
+        public static void Initialize(ApplicationDbContext context, IConfiguration configuration)
         {
-            _context = context;
+            _configuration = configuration;
 
-            InitializeDatabase();
+            if (!context.Elections.Any())
+            {
+                if (_configuration["StartupData:SourceDirectory"] != null)
+                    importDirectory = _configuration["StartupData:SourceDirectory"];
+                else
+                    importDirectory = "wwwroot/Data/";
+
+                InitializeDatabase(context);
+            }
         }
 
-        public static void InitializeDatabase()
+        public static void InitializeDatabase(ApplicationDbContext _context)
         {
-            const string candidatesFile = "wwwroot/Data/candidates.json";
-            List<JSONCandidate> candidateData = GetJsonData<JSONCandidate>(candidatesFile);
+            string candidatesFile;
+            string absoluteFileName;
 
-            var elections = GetElections().ToArray();
+            var elections = GetElections(null);
             _context.Elections.AddRange(elections);
             _context.SaveChanges();
 
-            const string pollingPlacesFile = "wwwroot/Data/pollingPlaces.json";
-            List<JSONPollingPlace> pollingPlacesData = GetJsonData<JSONPollingPlace>(pollingPlacesFile);
-
-            List<PollingPlace> pollingPlaces = pollingPlacesData
-                .Select(ppd => new PollingPlace()
-                {
-                    ElectionId = DummyElectionId,
-                    PollingPlaceId = ppd.VotingPlaceID,
-                    PollingPlaceName = ppd.FacilityName,
-                    Address = ppd.FacilityAddress,
-                    PollingStationName = ppd.Location,
-                    Latitude = ppd.Latitude,
-                    Longitude = ppd.Longitude,
-                    AdvanceOnly = ppd.AdvanceOnly,
-                    LocalArea = ppd.LocalArea,
-                    WheelchairInfo = ppd.WheelchairAccess,
-                    ParkingInfo = ppd.Parking,
-                    Phone = ppd.Phone,
-                    Email = ppd.Email,
-                    PollingPlaceDates = ppd.PollingPlaceDates.Select(jsppd => new PollingPlaceDate()
-                    {
-                        PollingDate = DateTime.ParseExact(jsppd.PollingDate, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture),
-                        StartTime = DateTime.ParseExact(jsppd.StartTime, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture),
-                        EndTime = DateTime.ParseExact(jsppd.EndTime, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture),
-                    }).ToList(),
-                })
-                .ToList();
+            var pollingPlaces = GetPollingPlaces(null);
             _context.PollingPlaces.AddRange(pollingPlaces);
             _context.SaveChanges();
 
-            var organizations = GetOrganizations(candidateData).ToArray();
+            if (_configuration["StartupData:CandidatesFile"] != null)
+                candidatesFile = _configuration["StartupData:CandidatesFile"];
+            else
+                candidatesFile = "candidates.json";
+
+            absoluteFileName = importDirectory + candidatesFile;
+            List<JSONCandidate> candidateData = GetJsonData<JSONCandidate>(absoluteFileName);
+
+            var organizations = GetOrganizations(_context, candidateData);
             _context.Organizations.AddRange(organizations);
             _context.SaveChanges();
 
-            var races = GetRaces(candidateData).ToArray();
+            var races = GetRaces(_context, candidateData);
             _context.Races.AddRange(races);
             _context.SaveChanges();
 
-            GetCandidatesAndContacts(candidateData);
+            GetCandidatesAndContacts(_context, candidateData);
 
-            var ballotIssues = GetBallotIssues().ToArray();
+            var ballotIssues = GetBallotIssues(null);
             _context.BallotIssues.AddRange(ballotIssues);
             _context.SaveChanges();
 
-            var issueOptions = GetIssueOptions().ToArray();
+            var issueOptions = GetIssueOptions(null);
             _context.IssueOptions.AddRange(issueOptions);
             _context.SaveChanges();
 
-            var steps = GetSteps().ToArray();
+            var steps = GetSteps(null);
             _context.Steps.AddRange(steps);
             _context.SaveChanges();
         }
 
-        private static void GetCandidatesAndContacts(List<JSONCandidate> candidateData)
+        public static void GetCandidatesAndContacts(ApplicationDbContext _context, List<JSONCandidate> candidateData)
         {
             List<Contact> contacts = new List<Contact>();
             List<CandidateDetail> details = new List<CandidateDetail>();
             List<CandidateRace> candidateRaces = new List<CandidateRace>();
+            int dummyElectionId;
+
+            if (_configuration["StartupData:DummyElectionId"] != null)
+                dummyElectionId = Convert.ToInt32(_configuration["StartupData:DummyElectionId"]);
+            else
+                dummyElectionId = 1;
 
             foreach (var existingCandidate in candidateData)
             {
                 Candidate candidate = new Candidate()
                 {
-                    ElectionId = DummyElectionId,
+                    ElectionId = dummyElectionId,
                     Name = existingCandidate.Name,
                     Picture = "images/" + existingCandidate.Picture,
                     OrganizationId = _context.Organizations
@@ -269,7 +267,7 @@ namespace Web.Data
             _context.SaveChanges();
         }
 
-        private static List<Organization> GetOrganizations(List<JSONCandidate> candidateData)
+        public static List<Organization> GetOrganizations(ApplicationDbContext _context, List<JSONCandidate> candidateData)
         {
             List<Organization> organizations = new List<Organization>();
 
@@ -287,16 +285,23 @@ namespace Web.Data
             return organizations;
         }
 
-        private static List<Race> GetRaces(List<JSONCandidate> candidateData)
+        public static List<Race> GetRaces(ApplicationDbContext _context, List<JSONCandidate> candidateData)
         {
-            const int NumOfMayorsNeeded = 1;
-            const int NumOfCouncillorsNeeded = 10;
-            const int NumOfParkCommissionersNeeded = 7;
-            const int NumOfSchoolTrusteesNeeded = 9;
-            const int OrderMayor = 1;
-            const int OrderCouncillor = 2;
-            const int OrderPark = 3;
-            const int OrderSchool = 4;
+            int dummyElectionId;
+
+            int NumOfMayorsNeeded = Convert.ToInt32(SettingsConfigHelper.AppSetting("CurrentRace:NumOfMayorsNeeded"));
+            int NumOfCouncillorsNeeded = Convert.ToInt32(SettingsConfigHelper.AppSetting("CurrentRace:NumOfCouncillorsNeeded"));
+            int NumOfParkCommissionersNeeded = Convert.ToInt32(SettingsConfigHelper.AppSetting("CurrentRace:NumOfParkCommissionersNeeded"));
+            int NumOfSchoolTrusteesNeeded = Convert.ToInt32(SettingsConfigHelper.AppSetting("CurrentRace:NumOfSchoolTrusteesNeeded"));
+            int OrderMayor = Convert.ToInt32(SettingsConfigHelper.AppSetting("CurrentRace:OrderMayor"));
+            int OrderCouncillor = Convert.ToInt32(SettingsConfigHelper.AppSetting("CurrentRace:OrderCouncillor"));
+            int OrderPark = OrderCouncillor = Convert.ToInt32(SettingsConfigHelper.AppSetting("CurrentRace:OrderPark"));
+            int OrderSchool = Convert.ToInt32(SettingsConfigHelper.AppSetting("CurrentRace:OrderSchool"));
+
+            if (_configuration["StartupData:DummyElectionId"] != null)
+                dummyElectionId = Convert.ToInt32(_configuration["StartupData:DummyElectionId"]);
+            else
+                dummyElectionId = 1;
 
             List<Race> races = new List<Race>();
 
@@ -306,7 +311,7 @@ namespace Web.Data
                 {
                     Race race = new Race()
                     {
-                        ElectionId = DummyElectionId,
+                        ElectionId = dummyElectionId,
                         PositionName = candidate.Position,
                     };
 
@@ -349,138 +354,213 @@ namespace Web.Data
             return data;
         }
 
-        private static List<Election> GetElections()
+        public static List<Election> GetElections(string filename)
         {
-            return new List<Election>()
+            string file;
+            string absoluteFileName;
+
+            if (filename == null)
             {
-                new Election()
+                if (_configuration["StartupData:ElectionsFile"] != null)
+                    file = _configuration["StartupData:ElectionsFile"];
+                else
+                    file = "elections.json";
+
+                absoluteFileName = importDirectory + file;
+            }
+            else
+            {
+                absoluteFileName = filename;
+            }
+
+            List<JSONElection> electionData = GetJsonData<JSONElection>(absoluteFileName);
+
+            List<Election> elections = new List<Election>();
+
+            foreach (var item in electionData)
+            {
+
+                elections.Add(new Election()
                 {
-                    ElectionName = "City of Vancouver 2018 Municipal Election",
-                    EndDate = new DateTime(2019, 10, 21),
-                    StartDate = new DateTime(2018, 9, 14),
-                    Description = "City of Vancouver 2018 Municipal Election"
-                },
-                new Election()
-                {
-                    ElectionName = "Canadian Federal Election 2019",
-                    EndDate = new DateTime(2019, 10, 21),
-                    StartDate = new DateTime(2019, 10, 21),
-                    Description = "The 2019 Canadian federal election is scheduled to take place on or before October 21, 2019. The October 21 date of the vote is determined by the fixed-date procedures in the Canada Elections Act"
-                },
-            };
+                    ElectionName = item.ElectionName,
+                    EndDate = item.EndDate,
+                    StartDate = item.StartDate,
+                    Description = item.Description
+                });
+            }
+
+            return elections;
+
         }
 
-        private static List<BallotIssue> GetBallotIssues()
+        public static List<BallotIssue> GetBallotIssues(string filename)
         {
-            return new List<BallotIssue>()
+            string file;
+            string absoluteFileName;
+
+            if (filename == null)
             {
-                new BallotIssue()
-                {
-                    BallotIssueTitle = "1. TRANSPORTATION AND TECHNOLOGY",
-                    Description = @"This question seeks authority to borrow funds to be used in carrying out the basic capital works program with respect to transportation and technology.
 
-Are you in favour of Council having the authority, without further assent of the electors, to pass bylaws between January 1, 2019, and December 31, 2022, to borrow an aggregate $100,353,000 for the following purposes?",
-                    ElectionId = 1,
-                },
-                new BallotIssue()
-                {
-                    BallotIssueTitle = "2. CAPITAL MAINTENANCE AND RENOVATION PROGRAMS FOR EXISTING COMMUNITY FACILITIES, CIVIC FACILITIES, AND PARKS",
-                    Description = @"This question seeks authority to borrow funds to be used in carrying out the basic capital works program with respect to capital maintenance and renovation programs for existing community facilities, civic facilities, and parks.
+                if (_configuration["StartupData:BallotIssuesFile"] != null)
+                    file = _configuration["StartupData:BallotIssuesFile"];
+                else
+                    file = "elections.json";
 
-Are you in favour of Council having the authority, without further assent of the electors, to pass bylaws between January 1, 2019, and December 31, 2022, to borrow an aggregate $99,557,000 for the following purposes?",
-                    ElectionId = 1,
-                },
-                new BallotIssue()
-                {
-                    BallotIssueTitle = "3. REPLACEMENT OF EXISTING COMMUNITY FACILITIES AND CIVIC FACILITIES:",
-                    Description = @"This question seeks authority to borrow funds to be used in carrying out the basic capital works program with respect to replacement of existing community facilities and civic facilities.
+                absoluteFileName = importDirectory + file;
+            }
+            else
+            {
+                absoluteFileName = filename;
+            }
 
-Are you in favour of Council having the authority, without further assent of the electors, to pass bylaws between January 1, 2019, and December 31, 2022, to borrow an aggregate $100,090,000 for the following purposes?",
-                    ElectionId = 1,
-                }
-            };
+            List<JSONBallotIssue> data = GetJsonData<JSONBallotIssue>(absoluteFileName);
+
+            List<BallotIssue> list = new List<BallotIssue>();
+
+            foreach (var item in data)
+            {
+
+                list.Add(new BallotIssue()
+                {
+                    BallotIssueTitle = item.BallotIssueTitle,
+                    Description = item.Description,
+                    ElectionId = item.ElectionId
+                });
+            }
+
+            return list;
         }
 
-        private static List<IssueOption> GetIssueOptions()
+        public static List<PollingPlace> GetPollingPlaces(string filename)
         {
-            return new List<IssueOption>()
+            string file;
+            string absoluteFileName;
+            int dummyElectionId;
+
+            if (filename == null)
             {
-                new IssueOption()
-                {
-                    BallotIssueId = 1,
-                    IssueOptionInfo = "Yes",
-                },
-                new IssueOption()
-                {
-                    BallotIssueId = 1,
-                    IssueOptionInfo = "No",
-                },
-                new IssueOption()
-                {
-                    BallotIssueId = 2,
-                    IssueOptionInfo = "Yes",
-                },
-                new IssueOption()
-                {
-                    BallotIssueId = 2,
-                    IssueOptionInfo = "No",
-                },
-                new IssueOption()
-                {
-                    BallotIssueId = 3,
-                    IssueOptionInfo = "Yes",
-                },
-                new IssueOption()
-                {
-                    BallotIssueId = 3,
-                    IssueOptionInfo = "No",
-                },
-            };
+                if (_configuration["StartupData:PollingPlacesFile"] != null)
+                    file = _configuration["StartupData:PollingPlacesFile"];
+                else
+                    file = "polling_places.json";
+
+                absoluteFileName = importDirectory + file;
+            }
+            else
+            {
+                absoluteFileName = filename;
+            }
+
+            List<JSONPollingPlace> data = GetJsonData<JSONPollingPlace>(absoluteFileName);
+
+            if (_configuration["StartupData:DummyElectionId"] != null)
+                dummyElectionId = Convert.ToInt32(_configuration["StartupData:DummyElectionId"]);
+            else
+                dummyElectionId = 1;
+
+            List<PollingPlace> list = data
+               .Select(ppd => new PollingPlace()
+               {
+                   ElectionId = dummyElectionId,
+                   PollingPlaceId = ppd.VotingPlaceID,
+                   PollingPlaceName = ppd.FacilityName,
+                   Address = ppd.FacilityAddress,
+                   PollingStationName = ppd.Location,
+                   Latitude = ppd.Latitude,
+                   Longitude = ppd.Longitude,
+                   AdvanceOnly = ppd.AdvanceOnly,
+                   LocalArea = ppd.LocalArea,
+                   WheelchairInfo = ppd.WheelchairAccess,
+                   ParkingInfo = ppd.Parking,
+                   Phone = ppd.Phone,
+                   Email = ppd.Email,
+                   PollingPlaceDates = ppd.PollingPlaceDates.Select(jsppd => new PollingPlaceDate()
+                   {
+                       PollingDate = DateTime.ParseExact(jsppd.PollingDate, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture),
+                       StartTime = DateTime.ParseExact(jsppd.StartTime, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture),
+                       EndTime = DateTime.ParseExact(jsppd.EndTime, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture),
+                   }).ToList(),
+               })
+               .ToList();
+
+
+            return list;
         }
 
-        private static List<Step> GetSteps()
+
+        public static List<IssueOption> GetIssueOptions(string filename)
         {
-            return new List<Step>()
+            string file;
+            string absoluteFileName;
+
+            if (filename == null)
             {
-                new Step()
+                if (_configuration["StartupData:IssueOptionsFile"] != null)
+                    file = _configuration["StartupData:IssueOptionsFile"];
+                else
+                    file = "issue_options.json";
+
+                absoluteFileName = importDirectory + file;
+            }
+            else
+            {
+                absoluteFileName = filename;
+            }
+
+            List<JSONIssueOption> data = GetJsonData<JSONIssueOption>(absoluteFileName);
+
+            List<IssueOption> list = new List<IssueOption>();
+
+            foreach (var item in data)
+            {
+
+                list.Add(new IssueOption()
                 {
-                    ElectionId = 1,
-                    StepNumber = 1,
-                    StepTitle = "STEP 1: REVIEW AND SELECT CANDIDATES",
-                    StepDescription = @"Add up to 1 mayor, 10 councillors, 7 Park Board commissioners, and 9 school trustees to your plan. Open a candidate to read their profile and add them to your plan. Change your choices in the selected candidates area above.
+                    BallotIssueId = item.BallotIssueId,
+                    IssueOptionInfo = item.IssueOptionInfo,
+                });
+            }
 
-A candidate’s profile expresses their views alone and these views aren’t endorsed by the City of Vancouver. Profiles are included exactly as candidates wrote them.
+            return list;
 
-If you live in the UBC Lands or University Endowment Lands, and you do not own property in Vancouver, you can only vote for school trustees in the election."
-                },
-                new Step()
+        }
+
+        public static List<Step> GetSteps(string filename)
+        {
+ 
+            string file;
+            string absoluteFileName;
+
+            if (filename == null)
+            {
+                if (_configuration["StartupData:StepsFile"] != null)
+                    file = _configuration["StartupData:StepsFile"];
+                else
+                    file = "steps.json";
+
+                absoluteFileName = importDirectory + file;
+            } else
+            {
+                absoluteFileName = filename;
+            }            
+
+            List<JSONStep> data = GetJsonData<JSONStep>(absoluteFileName);
+
+            List<Step> list = new List<Step>();
+
+            foreach (var item in data)
+            {
+
+                list.Add(new Step()
                 {
-                    ElectionId = 1,
-                    StepNumber = 2,
-                    StepTitle = "STEP 2: REVIEW CAPITAL PLAN BORROWING QUESTIONS",
-                    StepDescription = @"Add your response to the Capital Plan borrowing questions to your plan.
+                    ElectionId = item.ElectionId,
+                    StepNumber = item.StepNumber,
+                    StepTitle = item.StepTitle,
+                    StepDescription = item.StepDescription
+                });
+            }
 
-The ballot will have 3 ""yes"" or ""no"" questions on whether the City can borrow $300 million to help pay for projects in the Capital Plan.
-
-The 2019-2022 Capital Plan invests $300,000,000 in City facilities and infrastructure to provide services to the people of Vancouver.
-
-If a majority of voters vote yes, then City Council can borrow the funds for these projects."
-                },
-                new Step()
-                {
-                    ElectionId = 1,
-                    StepNumber = 3,
-                    StepTitle = "STEP 3: CHOOSE YOUR VOTING DATE AND LOCATION",
-                    StepDescription = @"Not sure when you want to vote yet? Don't worry - you're not committing to a particular day or place. If you live in the UBC Lands or University Endowment Lands, you can vote at 2 voting places only on October 20 Opens in new window. These 2 places are not shown on the map below. Skip this step to review your choices and create your plan."
-                },
-                new Step()
-                {
-                    ElectionId = 1,
-                    StepNumber = 4,
-                    StepTitle = "STEP 4: REVIEW YOUR PLAN",
-                    StepDescription = ""
-                }
-            };
+            return list;
         }
     }
 }

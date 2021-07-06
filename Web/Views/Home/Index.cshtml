@@ -27,9 +27,6 @@
                     <h3>@Model.CandidatesCount</h3>
                     <p>@Localizer["Candidates"]</p>
                 </div>
-                <div class="icon">
-                    <i class="material-icons">people</i>
-                </div>
                 <a class="small-box-footer" asp-area="" asp-controller="Candidates" asp-action="Index">
                     @Localizer["More info"] <i class="material-icons">chevron_right</i>
                 </a>
@@ -40,9 +37,6 @@
                 <div class="inner">
                     <h3>@Model.PollingPlacesCount<sup style="font-size: 20px"></sup></h3>
                     <p>@Localizer["Polling Places"]</p>
-                </div>
-                <div class="icon">
-                    <i class="material-icons">account_box</i>
                 </div>
                 <a class="small-box-footer" asp-area="" asp-controller="PollingPlaces" asp-action="Index">
                     @Localizer["More info"] <i class="material-icons">chevron_right</i>
@@ -55,9 +49,7 @@
                     <h3>@Model.BallotIssuesCount</h3>
                     <p>@Localizer["Ballot Issues"]</p>
                 </div>
-                <div class="icon">
-                    <i class="material-icons">format_list_bulleted</i>
-                </div>
+
                 <a class="small-box-footer" asp-area="" asp-controller="BallotIssues" asp-action="Index">
                     @Localizer["More info"] <i class="material-icons">chevron_right</i>
                 </a>

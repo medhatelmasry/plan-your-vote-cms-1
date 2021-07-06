@@ -39,75 +39,103 @@
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-2">
                     @if (User.Identity.IsAuthenticated)
                     {
-                        <ul class="nav navbar-nav">
-                            <li class="dropdown @Html.IsSelected(actions: "Index,Edit,Details,Delete,Create", controllers: "Elections,State")">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Elections <span class="caret"></span></a>
-                                <ul class="dropdown-menu" role="menu">
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="State" asp-action="Index">@Localizer["Manage elections"]</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="Elections" asp-action="Index">@Localizer["All elections"]</a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="dropdown @Html.IsSelected(actions: "Index,Edit,Details,Delete,Create,Reorder", controllers: "Races,BallotIssues,PollingPlaces,Steps")">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Site contents <span class="caret"></span></a>
-                                <ul class="dropdown-menu" role="menu">
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="Races" asp-action="Index">@Localizer["Races"]</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="BallotIssues" asp-action="Index">@Localizer["Questions"]</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="PollingPlaces" asp-action="Index">@Localizer["Polling places"]</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="Steps" asp-action="Index">@Localizer["Steps"]</a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="dropdown @Html.IsSelected(actions: "Index,Create,Details,Delete,Edit,Reorder", controllers: "Candidates,Organizations")">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Candidate details <span class="caret"></span></a>
-                                <ul class="dropdown-menu" role="menu">
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white"
-                                           asp-area="" asp-controller="Candidates" asp-action="Index">@Localizer["Candidates"]</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white"
-                                           asp-area="" asp-controller="Candidates" asp-action="Create">@Localizer["Create candidate"]</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white"
-                                           asp-area="" asp-controller="Organizations" asp-action="Index">@Localizer["Organizations"]</a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="dropdown @Html.IsSelected(actions: "Index,Create,Details,Delete,Edit", controllers: "Images,Themes,SocialMedias")">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">UI details <span class="caret"></span></a>
-                                <ul class="dropdown-menu" role="menu">
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="Images" asp-action="Index">@Localizer["Images"]</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="Themes" asp-action="Index">@Localizer["Themes"]</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="SocialMedias" asp-action="Index">@Localizer["Social media icons"]</a>
-                                    </li>
-                                    @*<li class="nav-item">
-                                        <a class="nav-link text-white" asp-area="" asp-controller="OpenGraphs" asp-action="Index">@Localizer["Open Graphs"]</a>
-                                    </li>*@
-                                </ul>
-                            </li>
-                            @if (SignInManager.IsSignedIn(User) && User.IsInRole(Constants.Account.ROLE_ADMIN))
-                            {
-                                <li class="nav-item @Html.IsSelected(actions: "Index,Create,Details,Delete,Edit", controllers: "UserManagement")">
-                                    <a class="nav-link text-white" style="float: right;" asp-area="" asp-controller="UserManagement" asp-action="Index">@Localizer["User Management"]</a>
+                    <ul class="nav navbar-nav">
+                        <li class="dropdown @Html.IsSelected(actions: "Index,Edit,Details,Delete,Create", controllers: "Elections,State")">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Elections <span class="caret"></span></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="State" asp-action="Index">@Localizer["Manage elections"]</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="Elections" asp-action="Index">@Localizer["All elections"]</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="dropdown @Html.IsSelected(actions: "Index,Edit,Details,Delete,Create,Reorder", controllers: "Races,BallotIssues,PollingPlaces,Steps")">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Site contents <span class="caret"></span></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="Races" asp-action="Index">@Localizer["Races"]</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="BallotIssues" asp-action="Index">@Localizer["Questions"]</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="PollingPlaces" asp-action="Index">@Localizer["Polling places"]</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="Steps" asp-action="Index">@Localizer["Steps"]</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="dropdown @Html.IsSelected(actions: "Index,Create,Details,Delete,Edit,Reorder", controllers: "Candidates,Organizations")">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Candidate details <span class="caret"></span></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li class="nav-item">
+                                    <a class="nav-link text-white"
+                                       asp-area="" asp-controller="Candidates" asp-action="Index">@Localizer["Candidates"]</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white"
+                                       asp-area="" asp-controller="Candidates" asp-action="Create">@Localizer["Create candidate"]</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white"
+                                       asp-area="" asp-controller="Organizations" asp-action="Index">@Localizer["Organizations"]</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="dropdown @Html.IsSelected(actions: "Index,Create,Details,Delete,Edit", controllers: "Images,Themes,SocialMedias")">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">UI details <span class="caret"></span></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="Images" asp-action="Index">@Localizer["Images"]</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="Themes" asp-action="Index">@Localizer["Themes"]</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" asp-area="" asp-controller="SocialMedias" asp-action="Index">@Localizer["Social media icons"]</a>
+                                </li>
+                                @*<li class="nav-item">
+                    <a class="nav-link text-white" asp-area="" asp-controller="OpenGraphs" asp-action="Index">@Localizer["Open Graphs"]</a>
+                </li>*@
+                            </ul>
+                        </li>
+                        @if (SignInManager.IsSignedIn(User) && User.IsInRole(Constants.Account.ROLE_ADMIN))
+                        {
+                            <li class="nav-item @Html.IsSelected(actions: "Index,Create,Details,Delete,Edit", controllers: "UserManagement")">
+                                <a class="nav-link text-white" style="float: right;" asp-area="" asp-controller="UserManagement" asp-action="Index">@Localizer["User Management"]</a>
+                            </li>
+                        }
+
+                        @if (SignInManager.IsSignedIn(User) && User.IsInRole(Constants.Account.ROLE_ADMIN))
+                        {
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Import<span class="caret"></span></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li class="nav-item">
+                                <a class="nav-link text-white" style="float: right;" asp-area="" asp-controller="Seed" asp-action="LoadElectionsFromJsonFile">@Localizer["Elections"]</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" style="float: right;" asp-area="" asp-controller="Seed" asp-action="LoadPollingPlacesFromJsonFile">@Localizer["Polling Places"]</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" style="float: right;" asp-area="" asp-controller="Seed" asp-action="LoadCandidatesFromJsonFile">@Localizer["Candidates"]</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" style="float: right;" asp-area="" asp-controller="Seed" asp-action="LoadBallotIssuesFromJsonFile">@Localizer["Ballot Issues"]</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" style="float: right;" asp-area="" asp-controller="Seed" asp-action="LoadIssueOptionsFromJsonFile">@Localizer["Issue Options"]</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" style="float: right;" asp-area="" asp-controller="Seed" asp-action="LoadStepsFromJsonFile">@Localizer["Steps"]</a>
+                            </li>
+                        </ul>
+                    </li>
                             }
+
                         </ul>
                     }
                     <ul class="nav navbar-nav navbar-right">

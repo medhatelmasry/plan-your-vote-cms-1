@@ -6,6 +6,7 @@
 
 *.db
 Web/Migrations/
+Web/uploads/
 
 
 # User-specific files

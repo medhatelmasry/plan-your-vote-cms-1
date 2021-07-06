@@ -30,9 +30,11 @@ namespace Web.Models
         [Display(Name = "Organization")]
         public Organization Organization { get; set; }
 
+        // relation
         [Display(Name = "CandidateRaces")]
         public List<CandidateRace> CandidateRaces { get; set; }
 
+        // relation
         [Display(Name = "Contacts")]
         public List<Contact> Contacts { get; set; }
     }
